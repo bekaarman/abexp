@@ -1343,7 +1343,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         files_ = await get_file_details(file_id)
         if not files_:
             return await query.answer('Nᴏ sᴜᴄʜ ғɪʟᴇ ᴇxɪsᴛ.')
-            # Limit check implementation
+        # Limit check implementation
         from database.users_chats_db import check_user_limit
 
         allowed, count, limit, extra = await check_user_limit(query.from_user.id)
@@ -1358,8 +1358,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 f"• Advanced: 5 files/24h\n"
                 f"• VIP: Unlimited files\n\n"
                 f"Contact Admin to upgrade."
-             )
-             return await query.answer(limit_text, show_alert=True)
+            )
+            return await query.answer(limit_text, show_alert=True)
         files = files_
         files["file_name"] = files["file_name"].replace("@VJ_Bots", "").strip()
         title = files["file_name"]
