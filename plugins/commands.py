@@ -15,12 +15,56 @@ from utils import get_settings, pub_is_subscribed, get_size, is_subscribed, save
 from database.connections_mdb import active_connection
 from urllib.parse import quote_plus
 from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
+from info import ADMINS
+from database.users_chats_db import db
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
 join_db = JoinReqs
 
-        
+
+
+async def manage_tier(client, message, target_tier, limit_str):
+    if message.from_user.id not in ADMINS:
+        return await message.reply_text("❌ Only admin can use this command!")
+
+    args = message.text.split()[1:]
+    if not args or args[0].lower() == "list":
+        users_cursor = db.col.find({"plan_tier": target_tier})
+        user_list = [f"<code>{u.get('id')}</code>" async for u in users_cursor]
+        text = f"📋 <b>{target_tier.upper()} Users ({limit_str}):</b>\n\n" + ("\n".join(user_list) if user_list else "No users in this tier")
+        return await message.reply_text(text)
+
+    action = args[0].lower()
+    if len(args) < 2 or not args[1].isdigit():
+        return await message.reply_text(f"❌ Usage: `/{target_tier} add <user_id>` or `/{target_tier} remove <user_id>` or `/{target_tier} list`")
+
+    target_id = int(args[1])
+    if action == "add":
+        await db.col.update_one({"id": target_id}, {"$set": {"plan_tier": target_tier}}, upsert=True)
+        await message.reply_text(f"✅ User <code>{target_id}</code> added to <b>{target_tier.upper()}</b> tier ({limit_str}).")
+        try:
+            await client.send_message(target_id, f"🎉 <b>Plan Updated!</b>\nYou are now in <b>{target_tier.upper()}</b> tier ({limit_str}).")
+        except Exception:
+            pass
+    elif action == "remove":
+        await db.col.update_one({"id": target_id}, {"$set": {"plan_tier": "regular"}})
+        await message.reply_text(f"✅ User <code>{target_id}</code> removed from <b>{target_tier.upper()}</b> and reset to Regular.")
+    else:
+        await message.reply_text("❌ Invalid action. Use: add, remove, or list")
+
+@Client.on_message(filters.command("premium"))
+async def handle_premium(client, message):
+    await manage_tier(client, message, "premium", "3 files/24h")
+
+@Client.on_message(filters.command("advanced"))
+async def handle_advanced(client, message):
+    await manage_tier(client, message, "advanced", "5 files/24h")
+
+@Client.on_message(filters.command("vip"))
+async def handle_vip(client, message):
+    await manage_tier(client, message, "vip", "Unlimited files/24h")        
+
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     try:
