@@ -293,6 +293,23 @@ async def start(client, message):
             BATCH_FILES[file_id] = msgs
 
         filesarr = []
+        # Limit check implementation
+        from database.users_chats_db import check_user_limit
+
+        allowed, count, limit, extra = await check_user_limit(query.from_user.id)
+        if not allowed:
+            hours_left = extra
+            limit_text = (
+                f"❌ Limit Reached!\n\n"
+                f"Files used: {count}/{limit}\n"
+                f"Reset in: {hours_left} hour(s)\n\n"
+                f"Upgrade Plan:\n"
+                f"• Premium: 3 files/24h\n"
+                f"• Advanced: 5 files/24h\n"
+                f"• VIP: Unlimited files\n\n"
+                f"Contact Admin to upgrade."
+            )
+            return await query.answer(limit_text, show_alert=True)
         for msg in msgs:
             title = msg.get("title")
             size=get_size(int(msg.get("size", 0)))
@@ -321,23 +338,7 @@ async def start(client, message):
                     reply_markup = None
                 else:
                     reply_markup = None
- # Limit check implementation
-            from database.users_chats_db import check_user_limit
-
-            allowed, count, limit, extra = await check_user_limit(query.from_user.id)
-            if not allowed:
-                hours_left = extra
-                limit_text = (
-                    f"❌ Limit Reached!\n\n"
-                    f"Files used: {count}/{limit}\n"
-                    f"Reset in: {hours_left} hour(s)\n\n"
-                    f"Upgrade Plan:\n"
-                    f"• Premium: 3 files/24h\n"
-                    f"• Advanced: 5 files/24h\n"
-                    f"• VIP: Unlimited files\n\n"
-                    f"Contact Admin to upgrade."
-                )
-                return await query.answer(limit_text, show_alert=True)
+ 
                 msg = await client.send_cached_media(
                     chat_id=message.from_user.id,
                     file_id=msg.get("file_id"),
