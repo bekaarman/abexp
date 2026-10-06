@@ -23,6 +23,7 @@ from database.file_quota import (
 )
 from urllib.parse import quote_plus
 from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
+from database.file_quota import get_users_by_plan
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
@@ -1434,6 +1435,59 @@ async def myquota_cmd(client, message):
         f"📁 <b>Used:</b> {used}\n"
         f"📊 <b>Remaining:</b> {remaining}"
     )
+
+@Client.on_message(filters.command("premium") & filters.user(ADMINS))
+async def premium_users_cmd(client, message):
+
+    users = await get_users_by_plan("premium")
+
+    if not users:
+        return await message.reply_text(
+            "📭 <b>No Premium users found.</b>"
+        )
+
+    text = "💎 <b>Premium Users</b>\n\n"
+
+    for i, user_id in enumerate(users, 1):
+        text += f"{i}. <code>{user_id}</code>\n"
+
+    await message.reply_text(text)
+
+
+@Client.on_message(filters.command("advanced") & filters.user(ADMINS))
+async def advanced_users_cmd(client, message):
+
+    users = await get_users_by_plan("advanced")
+
+    if not users:
+        return await message.reply_text(
+            "📭 <b>No Advanced users found.</b>"
+        )
+
+    text = "🚀 <b>Advanced Users</b>\n\n"
+
+    for i, user_id in enumerate(users, 1):
+        text += f"{i}. <code>{user_id}</code>\n"
+
+    await message.reply_text(text)
+
+
+@Client.on_message(filters.command("vip") & filters.user(ADMINS))
+async def vip_users_cmd(client, message):
+
+    users = await get_users_by_plan("vip")
+
+    if not users:
+        return await message.reply_text(
+            "📭 <b>No VIP users found.</b>"
+        )
+
+    text = "👑 <b>VIP Users</b>\n\n"
+
+    for i, user_id in enumerate(users, 1):
+        text += f"{i}. <code>{user_id}</code>\n"
+
+    await message.reply_text(text)
 
 @Client.on_message(filters.command("add_premium"))
 async def give_premium_cmd_handler(client, message):
