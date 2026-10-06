@@ -307,54 +307,6 @@ class Database:
         user = await self.col.find_one({'id': int(id)})
         return user.get('save', False) 
 
-from datetime import datetime, timedelta
-
-LIMITS = {
-    "regular": 2,
-    "premium": 3,
-    "advanced": 5,
-    "vip": float("inf")
-}
-
-async def check_user_limit(user_id: int):
-    now = datetime.utcnow()
-    user = await db.col.find_one({"id": int(user_id)})
-
-    if not user:
-        await db.col.insert_one({
-            "id": int(user_id),
-            "plan_tier": "regular",
-            "daily_count": 1,
-            "reset_time": now
-        })
-        return True, 1, LIMITS["regular"], "Regular (2 files/24h)"
-
-    tier = user.get("plan_tier", "regular")
-    limit = LIMITS.get(tier, 2)
-    reset_time = user.get("reset_time", now)
-
-    # 24 Hours check
-    if now - reset_time > timedelta(hours=24):
-        await db.col.update_one(
-            {"id": int(user_id)},
-            {"$set": {"reset_time": now, "daily_count": 1}}
-        )
-        return True, 1, limit, f"{tier.capitalize()} ({limit if limit != float('inf') else 'Unlimited'} files/24h)"
-
-    current_count = user.get("daily_count", 0)
-
-    # Limit exceeded check
-    if current_count >= limit:
-        hours_left = max(1, int((reset_time + timedelta(hours=24) - now).total_seconds() // 3600))
-        return False, current_count, limit, hours_left
-
-    # Count badhao
-    await db.col.update_one(
-        {"id": int(user_id)},
-        {"$inc": {"daily_count": 1}}
-    )
-    return True, current_count + 1, limit, f"{tier.capitalize()} ({limit if limit != float('inf') else 'Unlimited'} files/24h)"
-    
 
 db = Database(USER_DB_URI, DATABASE_NAME)
 
