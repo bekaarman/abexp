@@ -16,7 +16,7 @@ from database.users_chats_db import db
 from database.join_reqs import JoinReqs
 from bs4 import BeautifulSoup
 from shortzy import Shortzy
-from database.quota_mdb import check_and_consume_file, LIMIT_MESSAGE
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -619,16 +619,6 @@ async def send_all(bot, userid, files, ident, chat_id, user_name, query):
                     await bot.send_message(chat_id=userid, text=f"<b>Hᴇʏ ᴛʜᴇʀᴇ {user_name} 👋🏽 \n\n✅ Sᴇᴄᴜʀᴇ ʟɪɴᴋ ᴛᴏ ʏᴏᴜʀ ғɪʟᴇ ʜᴀs sᴜᴄᴄᴇssғᴜʟʟʏ ʙᴇᴇɴ ɢᴇɴᴇʀᴀᴛᴇᴅ ᴘʟᴇᴀsᴇ ᴄʟɪᴄᴋ ᴅᴏᴡɴʟᴏᴀᴅ ʙᴜᴛᴛᴏɴ\n\n🗃️ Fɪʟᴇ Nᴀᴍᴇ : {title}\n🔖 Fɪʟᴇ Sɪᴢᴇ : {size}</b>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📤 Dᴏᴡɴʟᴏᴀᴅ 📥", url=await get_shortlink(chat_id, f"https://telegram.me/{temp.U_NAME}?start=files_{file['file_id']}"))]]))
         else:
             for file in files:
-
-                allowed = await check_and_consume_file(userid)
-
-                if not allowed:
-                    await bot.send_message(
-                        chat_id=userid,
-                        text=LIMIT_MESSAGE,
-                        disable_web_page_preview=True
-                    )
-                    break
                 f_caption = file["caption"]
                 title = file["file_name"]
                 size = get_size(file["file_size"])
