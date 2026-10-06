@@ -21,6 +21,7 @@ from database.quota_mdb import (
 )
 from urllib.parse import quote_plus
 from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
+from database.quota_mdb import check_and_consume_file, LIMIT_MESSAGE
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
@@ -565,6 +566,15 @@ async def start(client, message):
         except:
             pass
         return await message.reply('No such file exist.')
+
+    allowed = await check_and_consume_file(message.from_user.id)
+
+    if not allowed:
+        return await message.reply_text(
+            LIMIT_MESSAGE,
+            disable_web_page_preview=True
+        )
+        
     files = files_
     title = files["file_name"]
     size=get_size(files["file_size"])
