@@ -259,6 +259,14 @@ async def start(client, message):
         filesarr = []
        
         for msg in msgs:
+            allowed = await check_file(message.from_user.id)
+
+            if not allowed:
+                await sts.edit(
+                    "⛔ <b>Your 24-hour file limit has been reached.</b>\n\n"
+                    "Please contact @Abv_384 to upgrade your plan."
+                )
+                break
             title = msg.get("title")
             size=get_size(int(msg.get("size", 0)))
             f_caption=msg.get("caption", "")
