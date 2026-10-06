@@ -13,6 +13,12 @@ from database.join_reqs import JoinReqs
 from info import CLONE_MODE, OWNER_LNK, REACTIONS, CHANNELS, REQUEST_TO_JOIN_MODE, TRY_AGAIN_BTN, ADMINS, SHORTLINK_MODE, PREMIUM_AND_REFERAL_MODE, STREAM_MODE, AUTH_CHANNEL, REFERAL_PREMEIUM_TIME, REFERAL_COUNT, PAYMENT_TEXT, PAYMENT_QR, LOG_CHANNEL, PICS, BATCH_FILE_CAPTION, CUSTOM_FILE_CAPTION, PROTECT_CONTENT, CHNL_LNK, GRP_LNK, REQST_CHANNEL, SUPPORT_CHAT, MAX_B_TN, VERIFY, SHORTLINK_API, SHORTLINK_URL, TUTORIAL, VERIFY_TUTORIAL, IS_TUTORIAL, URL
 from utils import get_settings, pub_is_subscribed, get_size, is_subscribed, save_group_settings, temp, verify_user, check_token, check_verification, get_token, get_shortlink, get_tutorial, get_seconds
 from database.connections_mdb import active_connection
+from database.quota_mdb import (
+    set_user_plan,
+    remove_user_plan,
+    get_quota,
+    PLAN_LIMITS
+)
 from urllib.parse import quote_plus
 from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
 logger = logging.getLogger(__name__)
@@ -1297,7 +1303,136 @@ async def fsub(client, message):
     await save_group_settings(grpid, 'fsub', fsub_ids)
     await message.reply_text(f"<b>Successfully set force channels for {title} to\n\n{channels}\n\nYou can remove it by /nofsub.</b>")
         
+@Client.on_message(filters.command("setplan") & filters.private & filters.user(ADMINS))
+async def set_plan_command(client, message):
 
+    if len(message.command) != 3:
+        return await message.reply_text(
+            "<b>Usage:</b>\n"
+            "/setplan USER_ID PLAN\n\n"
+            "<b>Plans:</b>\n"
+            "regular\n"
+            "premium\n"
+            "advanced\n"
+            "vip\n\n"
+            "<b>Example:</b>\n"
+            "/setplan 123456789 premium"
+        )
+
+    try:
+        user_id = int(message.command[1])
+    except ValueError:
+        return await message.reply_text("❌ Invalid User ID.")
+
+    plan = message.command[2].lower()
+
+    if plan not in PLAN_LIMITS:
+        return await message.reply_text(
+            "❌ Invalid plan.\n\n"
+            "Available plans:\n"
+            "regular\n"
+            "premium\n"
+            "advanced\n"
+            "vip"
+        )
+
+    await set_user_plan(user_id, plan)
+
+    limit = PLAN_LIMITS[plan]
+
+    if limit is None:
+        limit_text = "Unlimited"
+    else:
+        limit_text = f"{limit} files / rolling 24 hours"
+
+    await message.reply_text(
+        f"✅ <b>Plan updated</b>\n\n"
+        f"👤 User ID: <code>{user_id}</code>\n"
+        f"📦 Plan: <b>{plan.title()}</b>\n"
+        f"📁 Limit: <b>{limit_text}</b>"
+    )
+
+    try:
+        await client.send_message(
+            user_id,
+            f"🎉 <b>Your plan has been upgraded!</b>\n\n"
+            f"📦 Plan: <b>{plan.title()}</b>\n"
+            f"📁 Limit: <b>{limit_text}</b>\n\n"
+            f"For support: @Abv_384"
+        )
+    except Exception:
+        pass
+
+
+@Client.on_message(filters.command("removeplan") & filters.private & filters.user(ADMINS))
+async def remove_plan_command(client, message):
+
+    if len(message.command) != 2:
+        return await message.reply_text(
+            "<b>Usage:</b>\n"
+            "/removeplan USER_ID"
+        )
+
+    try:
+        user_id = int(message.command[1])
+    except ValueError:
+        return await message.reply_text("❌ Invalid User ID.")
+
+    await remove_user_plan(user_id)
+
+    await message.reply_text(
+        f"✅ User <code>{user_id}</code> has been moved to "
+        f"<b>Regular</b> plan.\n\n"
+        f"Limit: <b>2 files / rolling 24 hours</b>"
+    )
+
+    try:
+        await client.send_message(
+            user_id,
+            "ℹ️ <b>Your paid plan has been removed.</b>\n\n"
+            "You are now on the Regular plan.\n"
+            "Limit: 2 files per rolling 24 hours.\n\n"
+            "Contact @Abv_384 to upgrade."
+        )
+    except Exception:
+        pass
+
+
+@Client.on_message(filters.command("quota") & filters.private & filters.user(ADMINS))
+async def admin_quota_command(client, message):
+
+    if len(message.command) != 2:
+        return await message.reply_text(
+            "<b>Usage:</b>\n"
+            "/quota USER_ID"
+        )
+
+    try:
+        user_id = int(message.command[1])
+    except ValueError:
+        return await message.reply_text("❌ Invalid User ID.")
+
+    data = await get_quota(user_id)
+
+    await message.reply_text(
+        f"👤 <b>User:</b> <code>{user_id}</code>\n"
+        f"📦 <b>Plan:</b> {data['plan'].title()}\n"
+        f"📁 <b>Used:</b> {data['used']}\n"
+        f"📊 <b>Remaining:</b> {data['remaining']}"
+    )
+
+
+@Client.on_message(filters.command("myquota") & filters.private)
+async def my_quota_command(client, message):
+
+    data = await get_quota(message.from_user.id)
+
+    await message.reply_text(
+        f"📦 <b>Your Plan:</b> {data['plan'].title()}\n"
+        f"📁 <b>Used:</b> {data['used']}\n"
+        f"📊 <b>Remaining:</b> {data['remaining']}"
+    )
+    
 @Client.on_message(filters.command("add_premium"))
 async def give_premium_cmd_handler(client, message):
     if PREMIUM_AND_REFERAL_MODE == False:
