@@ -549,6 +549,13 @@ async def start(client, message):
                 reply_markup= None
             else:
                 reply_markup = None
+            allowed = await check_file(message.from_user.id)
+
+            if not allowed:
+                return await message.reply_text(
+                    LIMIT_MESSAGE,
+                    disable_web_page_preview=True
+                )
             msg = await client.send_cached_media(
                 chat_id=message.from_user.id,
                 file_id=file_id,
