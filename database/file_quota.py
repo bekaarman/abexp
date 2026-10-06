@@ -153,3 +153,16 @@ async def get_quota(user_id):
     remaining = max(0, limit - used)
 
     return plan, remaining, used
+
+async def get_users_by_plan(plan):
+    cursor = quota_col.find(
+        {"plan": plan.lower()},
+        {"_id": 1}
+    )
+
+    users = []
+
+    async for user in cursor:
+        users.append(user["_id"])
+
+    return users
